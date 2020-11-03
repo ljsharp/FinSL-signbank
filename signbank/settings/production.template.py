@@ -11,16 +11,16 @@ from signbank.settings.base import *
 DEBUG = False
 
 #: IMPORTANT: The hostname that this signbank runs on, this prevents HTTP Host header attacks
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['signbank.csc.fi']
 
 # A list of directories where Django looks for translation files.
 LOCALE_PATHS = (
-    '/home/azureuser/projects/GhSL_signbank/signbank/signbank-fi/locale',
+    '/home/signbank/signbank-fi/locale',
 )
 
 #: The absolute path to the directory where collectstatic will collect static files for deployment.
-#: Example: "/home/azureuser/projects/GhSL_signbank/example.com/static/"
-STATIC_ROOT = '/home/azureuser/projects/GhSL_signbank/signbank/static/'
+#: Example: "/var/www/example.com/static/"
+STATIC_ROOT = '/var/www/signbank/static/'
 # This setting defines the additional locations the staticfiles app will traverse if the FileSystemFinder finder
 # is enabled, e.g. if you use the collectstatic or findstatic management command or use the static file serving view.
 STATICFILES_DIRS = (
@@ -36,7 +36,7 @@ CACHES = {
 }
 
 #: Absolute filesystem path to the directory that will hold user-uploaded files.
-MEDIA_ROOT = '/home/azureuser/projects/GhSL_signbank/signbank/media/'
+MEDIA_ROOT = '/var/www/signbank/media/'
 # URL that handles the media served from MEDIA_ROOT, used for managing stored files.
 # It must end in a slash if set to a non-empty value.
 MEDIA_URL = '/media/'
