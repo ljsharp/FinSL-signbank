@@ -18,4 +18,4 @@ debug.log
 /*.cnf
 /signbank.db
 /codecov.sh
-/signbank/settings/settings_secret.py
+# /signbank/settings/settings_secret.py

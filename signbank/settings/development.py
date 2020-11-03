@@ -24,6 +24,9 @@ STATICFILES_DIRS = (
     os.path.join(PROJECT_DIR, 'signbank', 'static'),
 )
 
+#: IMPORTANT: The hostname that this signbank runs on, this prevents HTTP Host header attacks
+ALLOWED_HOSTS = ["*"]
+
 # Set up a dummy cache for development, it doesn't actually cache anything.
 CACHES = {
     'default': {
