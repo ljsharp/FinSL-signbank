@@ -1,0 +1,147 @@
+<VirtualHost *:80>
+        # ServerAdmin admin@signbank.dev
+        # ServerName signbank.dev
+        ServerName 51.137.145.100
+        # ServerAlias www.signbank.dev
+        ServerAlias 51.137.145.100
+        DocumentRoot /home/azureuser/projects/FinSL-signbank
+        ErrorLog ${APACHE_LOG_DIR}/error.log
+        CustomLog ${APACHE_LOG_DIR}/access.log combined
+
+        Alias /static /home/azureuser/projects/FinSL-signbank/signbank/static
+        <Directory /home/azureuser/projects/FinSL-signbank/signbank/static>
+                Require all granted
+        </Directory>
+
+        Alias /static /home/azureuser/projects/FinSL-signbank/signbank/media
+        <Directory /home/azureuser/projects/FinSL-signbank/signbank/media>
+                Require all granted
+        </Directory>
+
+        <Directory /home/azureuser/projects/FinSL-signbank/signbank>
+                <Files wsgi.py>
+                        Require all granted
+                </Files>
+        </Directory>
+
+#       WSGIDaemonProcess FinSL-signbank python-path=/home/azureuser/projects/FinSL-signbank python-home=/home/azureuser/signbankvenv
+        WSGIDaemonProcess FinSL-signbank python-path=/home/azureuser/projects/FinSL-signbank/bin:/home/azureuser/signbankvenv/lib/python3.x/site-packages
+        WSGIProcessGroup FinSL-signbank
+        WSGIScriptAlias / /home/azureuser/projects/FinSL-signbank/signbank/wsgi.py
+</VirtualHost>
+
+
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////
+sudo apt update
+sudo apt install python3-pip python3-dev libpq-dev postgresql postgresql-contrib nginx curl
+
+sudo -u postgres psql
+
+CREATE DATABASE myproject;
+CREATE USER myprojectuser WITH PASSWORD 'password';
+ALTER ROLE myprojectuser SET client_encoding TO 'utf8';
+ALTER ROLE myprojectuser SET default_transaction_isolation TO 'read committed';
+ALTER ROLE myprojectuser SET timezone TO 'UTC';
+GRANT ALL PRIVILEGES ON DATABASE myproject TO myprojectuser;
+\q
+
+
+sudo -H pip3 install --upgrade pip
+sudo -H pip3 install virtualenv
+
+mkdir projects
+cd projects
+
+virtualenv signbankvenv
+source signbankvenv/bin/activate
+
+git clone https://github.com/ljsharp/FinSL-signbank.git
+
+python bin/production.py makegrations
+python bin/production.py makegrations
+python bin/production.py createsuperuser
+
+gunicorn --bind 0.0.0.0:8000 signbank.wsgi
+
+deactivate
+
+sudo nano /etc/systemd/system/gunicorn.socket
+
+------------copy & paste------------
+[Unit]
+Description=gunicorn socket
+
+[Socket]
+ListenStream=/run/gunicorn.sock
+
+[Install]
+WantedBy=sockets.target
+------------------------------------
+
+sudo nano /etc/systemd/system/gunicorn.service
+
+-----------------copy and paste-------------
+[Unit]
+Description=gunicorn daemon
+Requires=gunicorn.socket
+After=network.target
+
+[Service]
+User=azureuser
+Group=www-data
+WorkingDirectory=/home/azureuser/projects/FinSL-signbank
+ExecStart=/home/azureuser/projects/signbankvenv/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --bind unix:/run/gunicorn.sock \
+          signbank.wsgi:application
+
+[Install]
+WantedBy=multi-user.target
+.............................................
+
+
+sudo systemctl start gunicorn.socket
+sudo systemctl enable gunicorn.socket
+
+sudo systemctl status gunicorn.socket
+
+file /run/gunicorn.sock
+
+sudo journalctl -u gunicorn.socket # for checking error logs
+
+sudo systemctl status gunicorn
+
+curl --unix-socket /run/gunicorn.sock localhost
+
+sudo systemctl status gunicorn
+
+sudo systemctl daemon-reload
+sudo systemctl restart gunicorn
+
+sudo nano /etc/nginx/sites-available/signbank
+
+sudo ln -s /etc/nginx/sites-available/signbank /etc/nginx/sites-enabled
+
+sudo nginx -t
+
+sudo systemctl restart nginx
+sudo ufw allow 'Nginx Full'
+
+
+server {
+    listen 80;
+    server_name 23.100.82.224;
+
+    location = /favicon.ico { access_log off; log_not_found off; }
+    location /static/ {
+        root /home/azureuser/projects/FinSL-signbank/static;
+    }
+
+    location / {
+        include proxy_params;
+        proxy_pass http://unix:/run/gunicorn.sock;
+    }
+}
